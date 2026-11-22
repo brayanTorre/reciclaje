@@ -4,8 +4,10 @@ from pathlib import Path
 import numpy as np
 import streamlit as st
 
-import tensorflow as tf
+
 from PIL import Image
+import tensorflow as tf, keras
+st.write("TF:", tf.__version__, "Keras:", keras.__version__)
 
 st.set_page_config(page_title="Clasificador de reciclaje", page_icon="♻️")
 
