@@ -1,13 +1,12 @@
+import base64
+import io
 import json
 from pathlib import Path
 
 import numpy as np
 import streamlit as st
-
-
+import tensorflow as tf
 from PIL import Image
-import tensorflow as tf, keras
-
 
 st.set_page_config(page_title="Clasificador de reciclaje", page_icon="♻️")
 
@@ -35,7 +34,6 @@ def load_class_names() -> list[str]:
         return json.load(f)
 
 
-
 @st.cache_resource
 def load_model():
     model_path = None
@@ -55,23 +53,33 @@ def load_model():
         st.stop()
 
 
-
 def prepare_image(image: Image.Image) -> np.ndarray:
     image = image.convert("RGB").resize(IMG_SIZE)
-    arr = np.array(image, dtype=np.float32)   # sin dividir entre 255
+    arr = np.array(image, dtype=np.float32)  # el modelo ya normaliza por dentro
     return np.expand_dims(arr, axis=0)
 
 
-def predict_top3(model, class_names: list[str], image: Image.Image):
-    x = prepare_image(image)
-    preds = model.predict(x, verbose=0)[0]
-    top3_idx = np.argsort(preds)[-3:][::-1]
-    results = []
-    for idx in top3_idx:
-        raw_label = class_names[idx]
-        show_label = LABELS_ES.get(raw_label, raw_label)
-        results.append((raw_label, show_label, float(preds[idx]) * 100))
-    return results
+def predict_probs(model, image: Image.Image) -> np.ndarray:
+    return model.predict(prepare_image(image), verbose=0)[0]
+
+
+def show_image(image: Image.Image, caption: str = ""):
+    """Muestra la imagen incrustada en el HTML (no usa el servidor de medios)."""
+    preview = image.convert("RGB")
+    preview.thumbnail((900, 900))
+    buf = io.BytesIO()
+    preview.save(buf, format="JPEG", quality=90)
+    b64 = base64.b64encode(buf.getvalue()).decode()
+    st.markdown(
+        f"""
+        <div style="text-align:center">
+            <img src="data:image/jpeg;base64,{b64}"
+                 style="max-width:100%; border-radius:8px;">
+            <p style="color:gray; font-size:0.85em;">{caption}</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 st.title("♻️ Clasificador de residuos")
@@ -85,23 +93,22 @@ uploaded_file = st.file_uploader("Selecciona una imagen", type=["jpg", "jpeg", "
 
 if uploaded_file is not None:
     image = Image.open(uploaded_file).convert("RGB")
-    st.image(image, caption="Imagen cargada", width="stretch")
+    show_image(image, "Imagen cargada")
 
-    top3 = predict_top3(model, class_names, image)
-    principal = top3[0]
+    preds = predict_probs(model, image)
+    top3_idx = np.argsort(preds)[-3:][::-1]
 
+    principal = class_names[top3_idx[0]]
     st.subheader("Predicción principal")
-    st.success(f"{principal[1]}: {principal[2]:.2f}%")
+    st.success(f"{LABELS_ES.get(principal, principal)}: {preds[top3_idx[0]]*100:.2f}%")
 
     st.subheader("Top 3")
-    for _, label_es, score in top3:
-        st.write(f"- {label_es}: {score:.2f}%")
+    for idx in top3_idx:
+        raw = class_names[idx]
+        st.write(f"- {LABELS_ES.get(raw, raw)}: {preds[idx]*100:.2f}%")
 
     st.subheader("Detalle por clase")
-    x = prepare_image(image)
-    preds = model.predict(x, verbose=0)[0]
-    for i, raw_label in enumerate(class_names):
-        label_es = LABELS_ES.get(raw_label, raw_label)
-        st.progress(float(preds[i]), text=f"{label_es}: {preds[i]*100:.2f}%")
+    for i, raw in enumerate(class_names):
+        st.progress(float(preds[i]), text=f"{LABELS_ES.get(raw, raw)}: {preds[i]*100:.2f}%")
 else:
     st.info("Carga una imagen para comenzar.")
