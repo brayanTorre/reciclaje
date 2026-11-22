@@ -7,7 +7,7 @@ import streamlit as st
 
 from PIL import Image
 import tensorflow as tf, keras
-st.write("TF:", tf.__version__, "Keras:", keras.__version__)
+
 
 st.set_page_config(page_title="Clasificador de reciclaje", page_icon="♻️")
 
@@ -84,8 +84,8 @@ model = load_model()
 uploaded_file = st.file_uploader("Selecciona una imagen", type=["jpg", "jpeg", "png"])
 
 if uploaded_file is not None:
-    image = Image.open(uploaded_file)
-    st.image(image, caption="Imagen cargada", use_column_width=True)
+    image = Image.open(uploaded_file).convert("RGB")
+    st.image(image, caption="Imagen cargada", width="stretch")
 
     top3 = predict_top3(model, class_names, image)
     principal = top3[0]
