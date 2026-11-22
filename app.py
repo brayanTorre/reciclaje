@@ -35,15 +35,23 @@ def load_class_names() -> list[str]:
         return json.load(f)
 
 
+
 @st.cache_resource
 def load_model():
-    if not MODEL_PATH_KERAS.exists():
-        st.error("Falta modelo_reciclaje_mobilenet/waste_mobilenet.keras")
+    model_path = None
+    for p in (MODEL_PATH_KERAS, MODEL_PATH_H5):
+        if p.exists():
+            model_path = p
+            break
+
+    if model_path is None:
+        st.error(f"No se encontró ningún modelo en {MODEL_DIR}/")
         st.stop()
+
     try:
-        return tf.keras.models.load_model(MODEL_PATH_KERAS, compile=False)
+        return tf.keras.models.load_model(model_path, compile=False)
     except Exception as e:
-        st.error(f"No se pudo cargar el modelo: {e}")
+        st.error(f"No se pudo cargar el modelo ({model_path.name}): {e}")
         st.stop()
 
 
