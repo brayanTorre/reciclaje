@@ -14,7 +14,7 @@ st.set_page_config(page_title="Clasificador de reciclaje", page_icon="♻️")
 MODEL_DIR = Path("modelo_reciclaje_mobilenet")
 MODEL_PATH_H5 = MODEL_DIR / "waste_mobilenet.h5"
 MODEL_PATH_KERAS = MODEL_DIR / "waste_mobilenet.keras"
-CLASSES_PATH = MODEL_DIR / "class_names.json"
+CLASSES_PATH = MODEL_DIR / "history.json"
 IMG_SIZE = (224, 224)
 
 LABELS_ES = {
@@ -37,22 +37,11 @@ def load_class_names() -> list[str]:
 
 @st.cache_resource
 def load_model():
-    model_path = None
-    if MODEL_PATH_H5.exists():
-        model_path = MODEL_PATH_H5
-    elif MODEL_PATH_KERAS.exists():
-        model_path = MODEL_PATH_KERAS
-
-    if model_path is None:
-        st.error(
-            "No se encontró el modelo. Sube al repositorio la carpeta "
-            "'modelo_reciclaje_mobilenet' con 'waste_mobilenet.h5' "
-            "o 'waste_mobilenet.keras' y 'class_names.json'."
-        )
+    if not MODEL_PATH_KERAS.exists():
+        st.error("Falta modelo_reciclaje_mobilenet/waste_mobilenet.keras")
         st.stop()
-
     try:
-        return tf.keras.models.load_model(model_path, compile=False)
+        return tf.keras.models.load_model(MODEL_PATH_KERAS, compile=False)
     except Exception as e:
         st.error(f"No se pudo cargar el modelo: {e}")
         st.stop()
@@ -61,10 +50,8 @@ def load_model():
 
 def prepare_image(image: Image.Image) -> np.ndarray:
     image = image.convert("RGB").resize(IMG_SIZE)
-    arr = np.array(image, dtype=np.float32) / 255.0
-    arr = np.expand_dims(arr, axis=0)
-    return arr
-
+    arr = np.array(image, dtype=np.float32)   # sin dividir entre 255
+    return np.expand_dims(arr, axis=0)
 
 
 def predict_top3(model, class_names: list[str], image: Image.Image):
