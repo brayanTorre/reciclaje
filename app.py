@@ -82,7 +82,7 @@ def show_image(image: Image.Image, caption: str = ""):
     )
 
 
-st.title("♻️ Clasificador de residuos")
+st.title("♻️ Resiclaje clase de IA-UTH-2026-Brayan Torres")
 st.write("Sube una imagen y el modelo intentará identificar el tipo de residuo.")
 st.caption("Clases: cartón, vidrio, metal, papel, plástico y basura general.")
 
